@@ -1,20 +1,42 @@
 
-import { login } from "../service/user-service.js";
-import { Response } from "../response/ResponseInterface.js";
+import { ResponseErr, ResponseOk } from "../response/ResponseType.js";
+import { User, findUserByUsername } from "../service/user-service.js";
 
-const LoginController = async (req, res, next) => {
-    const response: Response = await login({
-        username: req.body.username, 
-        password: req.body.password
-    });
+type UserDataResponse = Omit<User, 'password'>;
 
-    if(response.code === 200) {
+export const LoginController = async (req, res, next) => {
+    try {
+        let user: User = await findUserByUsername(req.body.username);
+        if(user.password !== req.body.password) {
+            const response: ResponseErr = {
+                code: 400,
+                status: "BAD_REQUEST",
+                message: `Username or password is incorrect.`
+            };
+
+            res.status(400).send(response);
+            return;
+        }
+
+        const userData: UserDataResponse = {
+            username: user.username,
+            role: user.role
+        }
+
+        const response: ResponseOk = {
+            code: 200,
+            status: "OK",
+            message: "User login successfully.",
+            data: userData
+        };
+
         res.status(200).send(response);
-    } else {
-        res.status(400).send(response);
+    } catch(err) {
+        res.status(400).send({
+            code: 404,
+            status: "NOT_FOUND",
+            message: `User: ${req.body.username} not found.`
+        });
+        return;
     }
-}
-
-export {
-    LoginController
 }

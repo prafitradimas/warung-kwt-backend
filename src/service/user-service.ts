@@ -1,20 +1,25 @@
 
 import { db } from "../application/database.js";
-import { Response } from "../response/ResponseInterface.js"
 
-const users = db.collection('users').get();
-
-const login = async (request: {username: string, password: string}): Promise<Response> => {
-    
-    const response: Response = {
-        code: 200,
-        status: "OK",
-        message: "User login successfully.",
-        data: users
-    }
-    return response;
+export type User = {
+    username: string,
+    password: string,
+    role: string
 }
 
-export {
-    login
+export async function login_admin(username: string, password: string) {
+    const admin = (await db.collection('warung').doc('admin').get()).data();
+    if (admin.username !== username || admin.password !== password) {
+        throw new Error(`Username atau password salah.`);
+    }
+
+    return true;
+}
+
+export async function findUserByUsername(username: string): Promise<User> | never {
+    const doc = await db.collection('users').doc(username).get();
+    if (!doc.exists) {
+        throw new Error(`User: ${username} not found.`);
+    }
+    return doc.data() as User;
 }
